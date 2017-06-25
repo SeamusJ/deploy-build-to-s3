@@ -51,7 +51,9 @@ function uploadStreamToS3(s3, bucketName, fileName, stream) {
             var params = {
                 Body: data,
                 Bucket: bucketName,
-                Key: fileName
+                Key: fileName,
+                ContentType: getContentTypeForFile(fileName),
+                ACL: "public-read"
             };
 
             s3.putObject(params, function(err) {
@@ -62,6 +64,24 @@ function uploadStreamToS3(s3, bucketName, fileName, stream) {
                 }
             });
         });
+}
+
+function getFileExtension(fileName) {
+    return fileName.substr(fileName.lastIndexOf('.') + 1);
+}
+
+function getContentTypeForFile(fileName) {
+    switch (getFileExtension(fileName)) {
+        case "html":
+        case "htm":
+            return "text/html";
+        case "js":
+            return "application/x-javascript";
+        case "css":
+            return "text/css";
+        default:
+            return "text/" + getFileExtension(fileName);
+    }
 }
 
 function stripLeadingPathChars(fileName){
