@@ -9,6 +9,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.77.0",
     "unzip": "^0.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.2",
+    "typescript": "^2.3.4"
   }
 }
