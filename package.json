@@ -1,9 +1,10 @@
 {
-  "name": "deploy-build-to-s3",
+  "name": "lambda-deploy-codepipeline-artifact-to-s3-website",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
+    "build": "tsc && gulp build:zip",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -14,6 +15,8 @@
   },
   "devDependencies": {
     "@types/node": "^8.0.2",
+    "gulp": "^3.9.1",
+    "gulp-zip": "^4.0.0",
     "typescript": "^2.3.4"
   }
 }
