@@ -1,4 +1,5 @@
 let gulp = require("gulp");
+let install = require("gulp-install");
 let zip = require("gulp-zip");
 
 let sourceFiles = [
@@ -10,8 +11,14 @@ let sourceFiles = [
     "!./.gitignore"
 ];
 
+gulp.task('install',function(){
+    gulp.src('./package.json')
+    .pipe(gulp.dest('./dist'))
+    .pipe(install({production : true}))
+});
+
 gulp.task("build:zip", () => {
-    gulp.src(sourceFiles, { dot: true, base: "./" })
+    gulp.src(['dist/**/*'], { nodir: true })
         .pipe(zip("deploy-build-to-s3.zip"))
         .pipe(gulp.dest("./"));
 });
