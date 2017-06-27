@@ -65,6 +65,6 @@ AWS CodePipeline
 To use the lambda function to deploy your built website to your website's S3 bucket, add a action to your build pipeline:
 * Action category: Invoke
 * Provider: AWS Lambda
-* Function name: <Name of your Lambda Function>
-* User parameters: <Name of your S3 bucket>
-* Input artifacts #1: <output artifact from your build step>
+* Function name: ```<Name of your Lambda Function>```
+* User parameters: ```<Name of your S3 bucket>```
+* Input artifacts #1: ```<output artifact from your build step>```
