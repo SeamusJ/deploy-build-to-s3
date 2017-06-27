@@ -1,6 +1,6 @@
 {
   "name": "lambda-deploy-codepipeline-artifact-to-s3-website",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "",
   "repository": {
     "type": "git",
