@@ -3,11 +3,6 @@ deploy-build-to-s3
 
 "deploy-build-to-s3" is an AWS Lambda function that will deploy a build artifact from a build step in an AWS CodePipeline to an AWS S3 Bucket configured as a website.
 
-Installation
-------------
-
-    npm install lambda-deploy-codepipeline-artifact-to-s3-website --save
-
 Build
 -----
 
