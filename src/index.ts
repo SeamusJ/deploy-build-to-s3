@@ -1,5 +1,5 @@
 import * as AWS from "aws-sdk";
-import * as unzip from "unzip";
+import * as unzip from "unzip-stream";
 import * as stream from "stream";
 import { JobHandler } from "./job.handler";
 import { Website } from "./website";
@@ -43,6 +43,7 @@ class EventHandler {
     private unzipInputArtifactAndUploadFilesToWebsite(inputStream: stream.Readable): void {
         inputStream.pipe(unzip.Parse())
             .on("entry", (entry: any) => {
+                this.log("Got artifact zip entry: ", entry);
                 let fileName = this.stripLeadingPathChars(entry.path);
 
                 this.website.uploadFileFromStream(fileName, entry);
