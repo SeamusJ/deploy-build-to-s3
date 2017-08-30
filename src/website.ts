@@ -1,4 +1,5 @@
 import * as AWS from "aws-sdk";
+import * as mimeTypes from "mime-types";
 
 export interface IErrorHandler {
     (message: string, err: object): void;
@@ -12,20 +13,23 @@ export class Website {
     }
 
     uploadFileFromStream(fileName: string, stream: any) {
-        var data = "";
+        var data: any[] = [];
 
         stream
             .on("data", (chunk: string) => {
-                data += chunk;
+                data.push(chunk);
             })
             .on("end", () => {
-                var params = {
-                    Body: data,
+                let params : any = {
+                    Body: Buffer.concat(data),
                     Bucket: this.bucketName,
                     Key: fileName,
-                    ContentType: this.getContentTypeForFile(fileName),
                     ACL: "public-read"
                 };
+                const contentType = mimeTypes.lookup(fileName);
+                if (contentType) {
+                    params.ContentType = contentType;
+                }
 
                 this.s3.putObject(params, (err: object) => {
                     if(err){
@@ -33,23 +37,5 @@ export class Website {
                     }
                 });
             });
-    }
-
-    private getContentTypeForFile(fileName: string): string {
-        switch (this.getFileExtension(fileName)) {
-        case "html":
-        case "htm":
-            return "text/html";
-        case "js":
-            return "application/x-javascript";
-        case "css":
-            return "text/css";
-        default:
-            return "text/" + this.getFileExtension(fileName);
-        }
-    }
-
-    private getFileExtension(fileName: string): string {
-        return fileName.substr(fileName.lastIndexOf('.') + 1);
     }
 }
