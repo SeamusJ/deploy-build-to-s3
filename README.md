@@ -62,4 +62,7 @@ To use the lambda function to deploy your built website to your website's S3 buc
 * Provider: AWS Lambda
 * Function name: ```<Name of your Lambda Function>```
 * User parameters: ```<Name of your S3 bucket>```
+    * You may also optionally add ```,true``` to have the lambda remove files from the target bucket that aren't found in the artifact package.
+    * On top of that, you can optionally add a pipe (```|```) separated list of files to exclude from this logic, such as environment-specific script or resource files. 
+    * Full usage example: ```mysite-com-live,true,robots.txt```
 * Input artifacts #1: ```<output artifact from your build step>```

@@ -8,7 +8,14 @@ interface ICallbackFn {
     (err: AWS.AWSError | null, message?: string): void;
 }
 
+class UserParameters {
+    targetS3Bucket: string;
+    cleanAbsentFiles: boolean;
+    ignoreFiles: string[];
+}
+
 class EventHandler {
+    private userParameters: UserParameters;
     private jobHandler: JobHandler;
     private website: Website;
     private inputArtifacts: IInputArtifacts[];
@@ -20,15 +27,30 @@ class EventHandler {
         this.s3 = this.createS3Client(job);
         this.jobHandler = new JobHandler(job, context);
         this.inputArtifacts = job.data.inputArtifacts;
-        this.website = this.createWebsite(job)
+        this.userParameters = this.parseUserParameters(job);
+        this.website = this.createWebsite()
     }
 
-    handleEvent() {
+    async handleEvent() {
         let inputStream = this.getReadableStreamForInputArtifact();
-
         this.handleStreamReadErrors(inputStream);
+        let deployedFiles = await this.unzipInputArtifactAndUploadFilesToWebsite(inputStream);
+        this.log("Deployed " + deployedFiles.length + " files.");
+        if (deployedFiles.length === 0) {
+            return; // Something's wrong; we'll rely on lower functions to report to Lambda
+        }
 
-        this.unzipInputArtifactAndUploadFilesToWebsite(inputStream);
+        let cleanupHadErrors = false;
+        if (this.userParameters.cleanAbsentFiles) {
+            this.log("Scrubbing old files, except for ignored list: ", this.userParameters.ignoreFiles);
+            cleanupHadErrors = await this.removeAbsentFilesFromWebsite(deployedFiles, this.userParameters.ignoreFiles);
+        }
+        if (cleanupHadErrors) {
+            return; // Something's wrong, we'll rely on the lower functions to report it to Lambda
+        }
+
+        this.jobHandler.putJobSuccess("Finished.");
+        this.callback(null, "Finished.");
     };
 
     private getReadableStreamForInputArtifact(): stream.Readable {
@@ -40,21 +62,41 @@ class EventHandler {
         return this.s3.getObject(params).createReadStream();
     }
 
-    private unzipInputArtifactAndUploadFilesToWebsite(inputStream: stream.Readable): void {
-        inputStream.pipe(unzip.Parse())
-            .on("entry", (entry: any) => {
-                this.log("Got artifact zip entry: ", entry);
-                let fileName = this.stripLeadingPathChars(entry.path);
+    private async unzipInputArtifactAndUploadFilesToWebsite(inputStream: stream.Readable): Promise<string[]> {
+        let unzipPromise = new Promise<string[]>((resolve, reject) => {
+            let files: string[] = [];
 
-                this.website.uploadFileFromStream(fileName, entry);
-            })
-            .on("close", () => {
-                this.jobHandler.putJobSuccess("Finished.");
-                this.callback(null, "Finished.");
-            })
-            .on("error", (err: any) => {
-                this.failJob("Error uploading files to s3.", err);
+            inputStream.pipe(unzip.Parse())
+                .on("entry", (entry: any) => {
+                    let fileName = this.stripLeadingPathChars(entry.path);
+
+                    this.website.uploadFileFromStream(fileName, entry);
+                    files.push(fileName);
+                })
+                .on("close", () => {
+                    resolve(files);
+                })
+                .on("error", (err: any) => {
+                    this.failJob("Error uploading files to s3.", err);
+                    reject(err);
+                });
+        });
+        
+        return await unzipPromise;
+    }
+
+    private async removeAbsentFilesFromWebsite(deployedFiles: string[], ignoreFiles: string[]) : Promise<boolean> {
+        let errors = await this.website.removeDifferences(deployedFiles.concat(ignoreFiles));
+
+        if (errors.length > 0) {
+            errors.forEach(error => {
+                this.log("ERROR: problem cleaning up excess file", error);
             });
+            this.failJob("Failing job due to failure to cleanup excess files", errors[0]);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private handleStreamReadErrors(inputStream: stream.Readable): void {
@@ -75,12 +117,24 @@ class EventHandler {
         });
     }
 
-    private createWebsite(job: IJob): Website {
-        let bucketName = job.data.actionConfiguration.configuration.UserParameters;
-
-        return new Website(job.data.actionConfiguration.configuration.UserParameters, (message, err) => {
+    private createWebsite(): Website {
+        return new Website(this.userParameters.targetS3Bucket, (message, err) => {
             this.failJob(message, err);
         });
+    }
+
+    private parseUserParameters(job: IJob) {
+        let paramString = job.data.actionConfiguration.configuration.UserParameters;
+        let params = paramString.split(',');
+        let userParameters = new UserParameters();
+        userParameters.targetS3Bucket = params[0];
+        if (params.length > 1) {
+            userParameters.cleanAbsentFiles = (params[1] == 'true');
+        }
+        if (params.length > 2) {
+            userParameters.ignoreFiles = params[2].split('|');
+        }
+        return userParameters;
     }
 
     private failJob(message: string, err: any): void {
@@ -89,8 +143,12 @@ class EventHandler {
         this.callback(err);
     }
 
-    private log(msg: string, obj: object): void {
-        console.log(msg, JSON.stringify(obj, null, 2));
+    private log(msg: string, obj: object | null = null): void {
+        if (obj) {
+            console.log(msg, JSON.stringify(obj, null, 2));
+        } else {
+            console.log(msg);
+        }
     }
 
     private stripLeadingPathChars(fileName: string): string {
