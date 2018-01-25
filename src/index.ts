@@ -122,7 +122,7 @@ class EventHandler {
     }
 
     private createWebsite(): Website {
-        return new Website(this.userParameters.targetS3Bucket, (message, err) => {
+        return new Website(this.userParameters.targetS3Bucket, this.userParameters.keyPrefix, (message, err) => {
             this.failJob(message, err);
         });
     }

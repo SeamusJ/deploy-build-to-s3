@@ -8,7 +8,7 @@ export interface IErrorHandler {
 export class Website {
     private s3: AWS.S3;
 
-    constructor(private bucketName: string, private onError: IErrorHandler) {
+    constructor(private bucketName: string, private keyPrefix: string, private onError: IErrorHandler) {
         this.s3 = new AWS.S3({ apiVersion: '2006-03-01' });
     }
 
@@ -59,7 +59,7 @@ export class Website {
     }
 
     private async getAWSBucketListing(): Promise<string[]> {
-        let params: any = { Bucket: this.bucketName };
+        let params: any = { Bucket: this.bucketName, Prefix: this.keyPrefix };
         let files: string[] = [];
         let keepGoing = true;
 
