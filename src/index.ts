@@ -12,6 +12,7 @@ class UserParameters {
     targetS3Bucket: string;
     cleanAbsentFiles: boolean;
     ignoreFiles: string[];
+    keyPrefix: string;
 }
 
 class EventHandler {
@@ -70,6 +71,9 @@ class EventHandler {
                 .on("entry", (entry: any) => {
                     let fileName = this.stripLeadingPathChars(entry.path);
 
+                    if (this.userParameters.keyPrefix)
+                      fileName = this.userParameters.keyPrefix + fileName;
+
                     this.website.uploadFileFromStream(fileName, entry);
                     files.push(fileName);
                 })
@@ -81,7 +85,7 @@ class EventHandler {
                     reject(err);
                 });
         });
-        
+
         return await unzipPromise;
     }
 
@@ -133,6 +137,9 @@ class EventHandler {
         }
         if (params.length > 2) {
             userParameters.ignoreFiles = params[2].split('|');
+        }
+        if (params.length > 3) {
+        	userParameters.keyPrefix = params[3];
         }
         return userParameters;
     }

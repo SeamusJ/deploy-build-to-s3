@@ -39,6 +39,7 @@ The lambda function will need a policy that permits access to your website's S3 
             "Effect": "Allow",
             "Action": "s3:*",
             "Resource": [
+                "arn:aws:s3:::example.com",
                 "arn:aws:s3:::example.com/*"
             ]
         },
