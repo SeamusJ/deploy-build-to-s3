@@ -9,10 +9,10 @@ interface ICallbackFn {
 }
 
 class UserParameters {
-    targetS3Bucket: string;
-    cleanAbsentFiles: boolean;
-    ignoreFiles: string[];
-    keyPrefix: string;
+    targetS3Bucket: string = '';
+    cleanAbsentFiles: boolean = false;
+    ignoreFiles: string[] = [];
+    keyPrefix: string = '';
 }
 
 class EventHandler {
